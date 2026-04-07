@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Testimonials Database</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f7fa; color: #2d3748; }
+
+  header {
+    background: linear-gradient(135deg, #1a365d, #2b6cb0);
+    color: white;
+    padding: 32px 24px 24px;
+    text-align: center;
+  }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p { opacity: 0.85; font-size: 0.95rem; margin-bottom: 20px; }
+
+  .search-bar {
+    display: flex;
+    gap: 10px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .search-bar input {
+    flex: 1;
+    padding: 12px 18px;
+    border-radius: 50px;
+    border: none;
+    font-size: 1rem;
+    outline: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .search-bar input:focus { box-shadow: 0 0 0 3px rgba(144,205,244,0.5); }
+
+  .controls {
+    background: white;
+    padding: 16px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .controls label { font-size: 0.85rem; font-weight: 600; color: #718096; margin-right: 4px; }
+
+  .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: 2px solid #e2e8f0;
+    background: white;
+    color: #4a5568;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .chip:hover { border-color: #2b6cb0; color: #2b6cb0; }
+  .chip.active { background: #2b6cb0; border-color: #2b6cb0; color: white; }
+
+  .stats {
+    padding: 12px 24px;
+    font-size: 0.85rem;
+    color: #718096;
+    background: #f5f7fa;
+  }
+  .stats span { font-weight: 700; color: #2b6cb0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 18px;
+    padding: 20px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    border: 1px solid #e2e8f0;
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+  .card.hidden { display: none; }
+
+  .card-header { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1rem; color: white;
+    flex-shrink: 0;
+  }
+  .card-name { font-weight: 700; font-size: 1rem; color: #1a202c; }
+  .card-source { font-size: 0.75rem; color: #a0aec0; }
+
+  .card-quote {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #4a5568;
+    flex: 1;
+    font-style: italic;
+    border-left: 3px solid #e2e8f0;
+    padding-left: 12px;
+  }
+  .card-quote mark {
+    background: #fefcbf;
+    border-radius: 2px;
+    padding: 0 2px;
+  }
+
+  .card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    font-size: 0.7rem;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tag-body { background: #ebf8ff; color: #2b6cb0; }
+  .tag-theme { background: #f0fff4; color: #276749; }
+  .tag-sport { background: #faf5ff; color: #6b46c1; }
+
+  .no-results {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #a0aec0;
+  }
+  .no-results h3 { font-size: 1.2rem; margin-bottom: 8px; color: #718096; }
+
+  .highlight-search { background: #fef08a; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 Client Testimonials Database</h1>
+  <p>Searchable archive of client wins, breakthroughs, and progress updates</p>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search by keyword, e.g. knee, shoulder, scoliosis, back pain…" oninput="filterAll()">
+  </div>
+</header>
+
+<div class="controls">
+  <label>BODY AREA:</label>
+  <div class="filter-chips" id="bodyChips"></div>
+  <div style="width:100%;height:0"></div>
+  <label>THEME:</label>
+  <div class="filter-chips" id="themeChips"></div>
+  <div style="width:100%;height:0"></div>
+  <label>SPORT:</label>
+  <div class="filter-chips" id="sportChips"></div>
+</div>
+
+<div class="stats" id="stats">Showing <span id="countShown">0</span> of <span id="countTotal">0</span> testimonials</div>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const testimonials = [
+  {
+    name: "David",
+    source: "Discord",
+    quote: "Oh yea! didnt notice that, thank you so much! By the way the change that happened since i started being so mindful about everything has been mindblowing i am officially pain free after what, 7 months? thank you so much Coach!",
+    body: ["general"],
+    theme: ["pain relief", "mindfulness", "long-term progress"],
+    sport: []
+  },
+  {
+    name: "Adetoro Adebayo",
+    source: "Discord",
+    quote: "I got my first dunk today with your help and I'm still only in phase 1!",
+    body: ["legs", "hips"],
+    theme: ["athletic performance", "early results"],
+    sport: ["basketball"]
+  },
+  {
+    name: "Adetoro Adebayo",
+    source: "Discord",
+    quote: "Hey guys I'm sorry for the response time. My groin has been improving every week. I've been focusing more on doing reps with my eyes closer and it's helped me so much. I'm a lot more intentional with my movements and my body is so much more aware and the work that I do is long lasting.",
+    body: ["groin", "hips"],
+    theme: ["body awareness", "pain relief", "mindfulness"],
+    sport: []
+  },
+  {
+    name: "Carlos",
+    source: "Discord",
+    quote: "Great. I feel like 2 months ago I would've never been able to do something like sissy squats.",
+    body: ["knee", "legs"],
+    theme: ["strength", "mobility", "progress"],
+    sport: []
+  },
+  {
+    name: "Carlos",
+    source: "Discord",
+    quote: "No soreness in patella after adjustments.",
+    body: ["knee", "patella"],
+    theme: ["pain relief"],
+    sport: []
+  },
+  {
+    name: "Carlos",
+    source: "Discord",
+    quote: "I feel like even when I walk and I pay attention to my posture and engaging my core it takes pressure off my knees. Does that seem right?",
+    body: ["knee", "core", "posture"],
+    theme: ["daily life", "body awareness"],
+    sport: []
+  },
+  {
+    name: "liamhayes223",
+    source: "Discord",
+    quote: "I just realized that I can now bend over and touch my toes without having to stretch or warm up to it. Already got that upgraded flexibility.",
+    body: ["hamstrings", "lower back", "flexibility"],
+    theme: ["flexibility", "mobility", "early results"],
+    sport: []
+  },
+  {
+    name: "Otitmuch",
+    source: "Discord",
+    quote: "Ooh thank you coach. Update: I had previous knee pain but it's disappeared. I've never felt my knees this clear since 2022 February when I messed them up. My left ankle is far better than it was but not yet back to normal.",
+    body: ["knee", "ankle"],
+    theme: ["pain relief", "injury recovery"],
+    sport: []
+  },
+  {
+    name: "Otitmuch",
+    source: "Discord",
+    quote: "Hey Steph, I was Skeptical at first. Have been for a long while due to all other failed trials. Just finished playing today. I was unstoppable and it's more of me connecting with the flow of energy from my toes to my hands when shooting. Coincidentally am playing lower which is making more shifty. I credit it to the lunge swap. I feel like babbling like a kid honestly because it's my prime highschool athleticism just that am now able to use all the muscles I built that I wasn't able to use. All in all. Thank you sir. Thank you very much.",
+    body: ["full body", "legs", "hips"],
+    theme: ["athletic performance", "body awareness", "skeptic converted"],
+    sport: ["basketball"]
+  },
+  {
+    name: "Otitmuch",
+    source: "Discord",
+    quote: "Frankly I never thought I'd be able to go back to being able to move like I am. I think I am better than where I was. I've been playing pick up games but soon I want to go and start playing with the team but first am preparing to surprise them.",
+    body: ["full body"],
+    theme: ["return to sport", "athletic performance", "injury recovery"],
+    sport: ["basketball"]
+  },
+  {
+    name: "Otitmuch",
+    source: "Discord",
+    quote: "Well today I felt amazing and reestablished the flow paying attention to angles that would allow me to feel the connection from feet to abdomen. And it felt good especially when doing the RDL.",
+    body: ["full body", "core", "feet"],
+    theme: ["body awareness", "movement quality"],
+    sport: []
+  },
+  {
+    name: "karim-ajrir",
+    source: "Discord DM",
+    quote: "And also i have done very little these week and a half but still i played yesterday my first match in months. And i didn't feel any pain whatsoever. I was already for a couple of weeks training with my team. So i thought let me try to play a game. I didn't play much i think 20 min. But still it's progress and i'm really happy.",
+    body: ["general"],
+    theme: ["pain relief", "return to sport", "injury recovery"],
+    sport: ["soccer"]
+  },
+  {
+    name: "NicoMunafo",
+    source: "Discord",
+    quote: "Since changing my job, doing your training and the breathing exercises, the fatigue I was experiencing has got a lot better. I would say from 3-10 to 5-10 and that's a lot. What I have also noticed is that my nervous system regulates itself much better after training and also during training. I've noticed that training after work is good for me again and helps me calm down. I haven't had that for ages. I can really look forward to it again and know that I'm doing something good for myself.",
+    body: ["nervous system"],
+    theme: ["fatigue", "breathing", "recovery", "mental health"],
+    sport: []
+  },
+  {
+    name: "NicoMunafo",
+    source: "Discord",
+    quote: "I am confident that I will get my pain under control and be able to climb again soon. That makes me very happy, because the climbing session is starting now. Thanks a lot!",
+    body: ["general"],
+    theme: ["pain relief", "return to sport"],
+    sport: ["climbing"]
+  },
+  {
+    name: "NicoMunafo",
+    source: "Discord",
+    quote: "Hey stef. Great document. I just read through it and thought about a few points. Perfect preparation for tomorrow's training. There are a few points I can still improve but I'm on the right track. I have a lot less pain. I feel more vital and my physical appearance looks much more athletic again. After almost three months, progress has been rapid!",
+    body: ["general"],
+    theme: ["pain relief", "long-term progress", "athletic performance"],
+    sport: []
+  },
+  {
+    name: "NicoMunafo",
+    source: "Discord",
+    quote: "I'm excited about how the whole thing is developing. After two months of work, I have to say it's incredible how it's progressed. You have really built a great program and your work as a coach is inspiring. Must be said.",
+    body: ["general"],
+    theme: ["program review", "long-term progress"],
+    sport: []
+  },
+  {
+    name: "NicoMunafo",
+    source: "Discord",
+    quote: "Thanks stef you have a very good eye.",
+    body: ["general"],
+    theme: ["coaching"],
+    sport: []
+  },
+  {
+    name: "Oisin — National Spine Institute",
+    source: "Medical Letter (Mr. Olan Carmody, Orthopaedic & Spinal Surgeon)",
+    quote: "Oisin is far better today than I have ever seen him. That is down to his own hard work and rehabilitation and exercise programme. I anticipate he will continue that long term. If he develops any issues down the line he is to come back and see me and I would be delighted to see him again. Thank you very much all the very best. — Mr. Olan Carmody MB BCh BAO MCh (RCSI Surgery) FRCS (Tr&Orth), Orthopaedic and Spinal Surgeon. Signed 13/03/2024.",
+    body: ["spine", "back"],
+    theme: ["medical endorsement", "rehabilitation", "long-term progress"],
+    sport: []
+  },
+  {
+    name: "caleb-frogley",
+    source: "Discord",
+    quote: "Had a win on the weekend. Came back sooner than anticipated from the torn groin to play in the first trial match. Felt explosive and my calf issues were not even a thought out there.",
+    body: ["groin", "calf", "legs"],
+    theme: ["injury recovery", "return to sport", "athletic performance"],
+    sport: ["soccer"]
+  },
+  {
+    name: "Jake Hamilton",
+    source: "Discord",
+    quote: "Yeah appreciate that, the difference really is night and day with how much I get from the exercises when my core is locked in vs isn't.",
+    body: ["core"],
+    theme: ["body awareness", "athletic performance"],
+    sport: []
+  },
+  {
+    name: "Jake",
+    source: "Discord",
+    quote: "I'm feeling the connection to the eccentric portion of the exercises much better. Doing some chin ups and on the way down rather than just feeling like I'm resisting the downward momentum it felt more like I was lowering myself by stretching my lats. Felt like the most valuable set of chin ups I've ever done.",
+    body: ["lats", "upper back", "shoulder"],
+    theme: ["body awareness", "strength"],
+    sport: []
+  },
+  {
+    name: "SpookyPapi",
+    source: "Discord",
+    quote: "I went onto the pitch yesterday after I left the gym and the changes I noticed in my body was insane. I could sprint full speed and feel like my body wasn't holding me back and I had no tightness anywhere. Spent sometime doing passing drills up and down the field with another player. We went through it 4 times and after quick recovery I felt that I could keep going. Also the usual tightness I would feel after a session simply wasn't there so I feel like I can recover 10x faster than usual.",
+    body: ["full body"],
+    theme: ["athletic performance", "recovery", "tightness relief"],
+    sport: ["soccer"]
+  },
+  {
+    name: "Louie",
+    source: "Discord",
+    quote: "Most apparent changes are now me 'feeling the ground' and being able to grip it when I pronate into the ground. Almost like there's a spring now. Then able to control directional movements without compensation.",
+    body: ["foot", "ankle", "lower leg"],
+    theme: ["proprioception", "movement quality", "athletic performance"],
+    sport: []
+  },
+  {
+    name: "Mike Landau",
+    source: "Discord",
+    quote: "Huge win today! Really focused on lowering all weights (mostly body weight for everything) and engaging my entire body. Body got the feeling we talked about with releasing most tension after the workout. Crazy how hard that was with just my body weight on lunges and rdls.",
+    body: ["full body", "legs"],
+    theme: ["tension release", "body awareness", "breakthrough"],
+    sport: []
+  },
+  {
+    name: "Mike Landau",
+    source: "Discord",
+    quote: "I'll send some vids of the workout I did today, but I think we are good on the form check. Overall pain right now 3-10 compared to 5/6 daily. That's insane in 2 weeks. The mental part of working with pain instead of against pain is by far the most challenging and rewarding.",
+    body: ["general"],
+    theme: ["pain relief", "mindset", "early results"],
+    sport: []
+  },
+  {
+    name: "malmal2003",
+    source: "Discord",
+    quote: "The workout was good. Very interesting to see how exhausting it was doing the small movements and actually consciously focusing on everything as I'm doing the exercises and how it affects the whole. Mixed in with the fascia release, I can notice the process of my body essentially healing getting started. If that makes sense.",
+    body: ["fascia", "full body"],
+    theme: ["body awareness", "healing", "fascia"],
+    sport: []
+  },
+  {
+    name: "Robert",
+    source: "Discord",
+    quote: "Yessir, It is way better now! Can fully jump without hesitation and I feel like an athletic freak.",
+    body: ["knee", "legs"],
+    theme: ["athletic performance", "pain relief", "jumping"],
+    sport: []
+  },
+  {
+    name: "Robert",
+    source: "Discord",
+    quote: "Amazing! This program you have is truly amazing Steph! I'm thankful for everything you have built here. It has been invaluable in my athletic journey.",
+    body: ["general"],
+    theme: ["program review", "athletic performance"],
+    sport: []
+  },
+  {
+    name: "kekuramusa",
+    source: "Discord",
+    quote: "Today I feel like I unlocked a new level within myself. I feel more connected throughout my body when I do the movements. I can do squat and hinge movements without feeling immobile afterwards. And I'm able to 'embrace the shake' while being conscious and breathing deeply in my movements. It's honestly an amazing experience.",
+    body: ["hips", "full body"],
+    theme: ["body awareness", "mobility", "breathing", "breakthrough"],
+    sport: []
+  },
+  {
+    name: "Chris WG",
+    source: "Discord",
+    quote: "Yoo! I had a break through workout on the track on Tuesday, felt like I was flying. Can't help but think that my improved coordination is a key contributor.",
+    body: ["full body"],
+    theme: ["athletic performance", "coordination", "breakthrough"],
+    sport: ["track", "running"]
+  },
+  {
+    name: "Leone Okati",
+    source: "Direct Message",
+    quote: "I appreciate you honestly man, if I could pay more I would. I realized that practicing skill isn't the problem, my body was and different load distribution affected different styles of play.",
+    body: ["full body"],
+    theme: ["body awareness", "athletic performance", "program review"],
+    sport: []
+  },
+  {
+    name: "wholesomepoet",
+    source: "Discord",
+    quote: "It's goin good, gotta get the cardio up, but second week of playing ultimate, body felt good, and I've kind of had a reputation for always rolling my ankles at the start of summer, first time, haven't had any scares either! Super excited about that!",
+    body: ["ankle"],
+    theme: ["injury prevention", "return to sport"],
+    sport: ["ultimate frisbee"]
+  },
+  {
+    name: "Fabrizio",
+    source: "Discord",
+    quote: "Hi there. Sounds good! I definitely have felt the most progress with speed and explosive movements now in Phase 3. Even my knee that I had surgery on, I would get a bit sore from playing full 90 min soccer game and that improved a lot.",
+    body: ["knee", "hips"],
+    theme: ["athletic performance", "injury recovery", "post-surgery"],
+    sport: ["soccer"]
+  },
+  {
+    name: "Fabrizio",
+    source: "Discord",
+    quote: "I have huge the progress I made with hips/foot/ankle recently, now working on phase 2 I feel like the best is yet to come!",
+    body: ["hips", "foot", "ankle"],
+    theme: ["progress", "injury recovery"],
+    sport: []
+  },
+  {
+    name: "Dávid",
+    source: "Discord",
+    quote: "Hey guys! I am currently on phase 2, day 3 is comming up, its really hard but just in 2 workouts i have seen massive changes in my movement mechanics especially after the rest days i feel awesome.",
+    body: ["full body"],
+    theme: ["movement quality", "early results", "progress"],
+    sport: []
+  },
+  {
+    name: "Dávid",
+    source: "Discord",
+    quote: "Hey Stefan!! The program is amazing, i can connect my whole body at the end of the workout for the last 3 days it feels amazing!",
+    body: ["full body"],
+    theme: ["body awareness", "program review"],
+    sport: []
+  },
+  {
+    name: "drakegriffith8",
+    source: "Discord",
+    quote: "Had to hit the ten mile run... last year I had too much tendon pain to WALK. We all winning.",
+    body: ["tendon", "legs"],
+    theme: ["pain relief", "injury recovery", "running"],
+    sport: ["running"]
+  },
+  {
+    name: "Michael Ede",
+    source: "Discord",
+    quote: "So after todays workout, i dribbled and shot around just for 5-10 minutes and man I'm blown away. We're just getting started not even 3 full weeks in and i felt different. My core and glutes were engaged when i was ball handling and i felt so much more controlled and coordinated. Absolutely wild man, i don't know that I've ever been more excited for anything else other than my kids and wedding.",
+    body: ["core", "glutes"],
+    theme: ["athletic performance", "coordination", "early results"],
+    sport: ["basketball"]
+  },
+  {
+    name: "Alan",
+    source: "Discord",
+    quote: "After working out yesterday morning I managed to make it through 2+ hours of yard work without any pain or discomfort in my back after months of issues bending over. Back feels great!",
+    body: ["lower back", "back"],
+    theme: ["pain relief", "daily life", "injury recovery"],
+    sport: []
+  },
+  {
+    name: "andyrk87",
+    source: "Discord",
+    quote: "Hey Stef! It's going good I think. I really like the foot pronation exercise - I think the knee pain alleviation is showing. And feeling looser in general which is great.",
+    body: ["foot", "knee"],
+    theme: ["pain relief", "flexibility"],
+    sport: []
+  },
+  {
+    name: "shashi",
+    source: "Discord",
+    quote: "Actually hip mobility is definitely improving. Or at least it feels like it!! I can't see it visibly yet in my forward bend but I can activate my glutes more.",
+    body: ["hips", "glutes"],
+    theme: ["mobility", "flexibility"],
+    sport: []
+  },
+  {
+    name: "Knewb556",
+    source: "Discord",
+    quote: "Also @Coach Andi I've suffered from foot/calf stiffness for over 2 1/2 years. I can confidently say from the short 10 days I've been apart of the program I virtually have none of that stiffness.",
+    body: ["foot", "calf"],
+    theme: ["pain relief", "stiffness", "early results"],
+    sport: []
+  },
+  {
+    name: "Knewb556",
+    source: "Discord",
+    quote: "Goodmorning @Coach Stef about to complete my day 1 phase 1 workout after a late start. Just wanted to say I'm feeling a lot better overall going into my morning than I have the last 3 days.",
+    body: ["general"],
+    theme: ["general wellness", "early results"],
+    sport: []
+  },
+  {
+    name: "Derevko",
+    source: "Discord",
+    quote: "I haven't been noticing any patella pain really which is hype.",
+    body: ["knee", "patella"],
+    theme: ["pain relief"],
+    sport: []
+  },
+  {
+    name: "Rudini",
+    source: "Discord DM",
+    quote: "Thanks a ton Stef! This program has made a huge difference and I'm sad it's going to be finished soon. I've seen a lot of other people have the same feedback, but I feel a crazy amount of awareness when I'm playing any sport. Like I'm able to break down my shooting mechanics in basketball and feel where things are out of wack, or on defense I'm picking everyone's pocket even if they're quicker than me, and then I'm soccer I'm able to reach any shot (as long as I'm in the right position) even though I'm like 3-6 inches shorter than most goalies.",
+    body: ["full body"],
+    theme: ["body awareness", "athletic performance", "program review"],
+    sport: ["basketball", "soccer"]
+  },
+  {
+    name: "Anonymous (Maia Test)",
+    source: "Discord",
+    quote: "What I wanted to write in the maia test. The question whether I feel at home in my body has touched me. I have often worked on it in the last few months and I notice how the work with you helps me to feel more at home in myself again.",
+    body: ["general"],
+    theme: ["mental health", "body awareness", "well-being"],
+    sport: []
+  },
+  {
+    name: "Anonymous",
+    source: "Discord",
+    quote: "Been focusing on getting that light breath work throughout the exercises and breathing through the rib cage more. I think it's helped me get a lot more out of the workouts.",
+    body: ["rib cage", "breathing"],
+    theme: ["breathing", "movement quality"],
+    sport: []
+  },
+  {
+    name: "Anonymous (Hip Flexion)",
+    source: "Discord",
+    quote: "I was stuck in extension a lot so the palms up supine breathing is nicely closing down my lower ribs. I really like the bear crawl breathing, it's getting better session by session. My favorite is the hip flexion breathing — by the end of day 3 it's giving me the biggest benefit.",
+    body: ["hips", "lower back", "rib cage"],
+    theme: ["breathing", "mobility", "lower back"],
+    sport: []
+  }
+];
+
+// Build tag lists
+const allBodyTags = [...new Set(testimonials.flatMap(t => t.body))].sort();
+const allThemeTags = [...new Set(testimonials.flatMap(t => t.theme))].sort();
+const allSportTags = [...new Set(testimonials.flatMap(t => t.sport).filter(Boolean))].sort();
+
+let activeBody = new Set();
+let activeTheme = new Set();
+let activeSport = new Set();
+
+function avatarColor(name) {
+  const colors = ['#e53e3e','#dd6b20','#d69e2e','#38a169','#2b6cb0','#6b46c1','#d53f8c','#319795','#744210','#2d3748'];
+  let h = 0;
+  for (let c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+  return colors[Math.abs(h) % colors.length];
+}
+
+function buildChips(container, tags, activeSet, onToggle) {
+  const el = document.getElementById(container);
+  el.innerHTML = '';
+  tags.forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (activeSet.has(tag) ? ' active' : '');
+    chip.textContent = tag;
+    chip.onclick = () => { onToggle(tag); filterAll(); };
+    el.appendChild(chip);
+  });
+}
+
+function highlightText(text, query) {
+  if (!query) return text;
+  const re = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+
+function filterAll() {
+  const query = document.getElementById('searchInput').value.trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll('.card').forEach((card, i) => {
+    const t = testimonials[i];
+    const searchStr = [t.name, t.quote, ...t.body, ...t.theme, ...t.sport].join(' ').toLowerCase();
+    const matchQuery = !query || searchStr.includes(query);
+    const matchBody = activeBody.size === 0 || t.body.some(b => activeBody.has(b));
+    const matchTheme = activeTheme.size === 0 || t.theme.some(b => activeTheme.has(b));
+    const matchSport = activeSport.size === 0 || t.sport.some(b => activeSport.has(b));
+    const visible = matchQuery && matchBody && matchTheme && matchSport;
+    card.classList.toggle('hidden', !visible);
+    if (visible) {
+      shown++;
+      card.querySelector('.card-quote').innerHTML = '"' + highlightText(t.quote, query) + '"';
+    }
+  });
+  document.getElementById('countShown').textContent = shown;
+  const noRes = document.getElementById('noResults');
+  if (noRes) noRes.style.display = shown === 0 ? 'block' : 'none';
+
+  // Rebuild chips to reflect active state
+  buildChips('bodyChips', allBodyTags, activeBody, tag => activeBody.has(tag) ? activeBody.delete(tag) : activeBody.add(tag));
+  buildChips('themeChips', allThemeTags, activeTheme, tag => activeTheme.has(tag) ? activeTheme.delete(tag) : activeTheme.add(tag));
+  buildChips('sportChips', allSportTags, activeSport, tag => activeSport.has(tag) ? activeSport.delete(tag) : activeSport.add(tag));
+}
+
+function init() {
+  const grid = document.getElementById('grid');
+  testimonials.forEach((t, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const initials = t.name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    const bodyTags = t.body.map(b => `<span class="tag tag-body">${b}</span>`).join('');
+    const themeTags = t.theme.map(th => `<span class="tag tag-theme">${th}</span>`).join('');
+    const sportTags = t.sport.map(s => `<span class="tag tag-sport">${s}</span>`).join('');
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="avatar" style="background:${avatarColor(t.name)}">${initials}</div>
+        <div>
+          <div class="card-name">${t.name}</div>
+          <div class="card-source">${t.source}</div>
+        </div>
+      </div>
+      <div class="card-quote">"${t.quote}"</div>
+      <div class="card-tags">${bodyTags}${themeTags}${sportTags}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Add no-results placeholder
+  const noRes = document.createElement('div');
+  noRes.id = 'noResults';
+  noRes.className = 'no-results';
+  noRes.style.display = 'none';
+  noRes.innerHTML = '<h3>No testimonials match your search</h3><p>Try different keywords or clear the filters above</p>';
+  grid.appendChild(noRes);
+
+  document.getElementById('countTotal').textContent = testimonials.length;
+  document.getElementById('countShown').textContent = testimonials.length;
+
+  buildChips('bodyChips', allBodyTags, activeBody, tag => activeBody.has(tag) ? activeBody.delete(tag) : activeBody.add(tag));
+  buildChips('themeChips', allThemeTags, activeTheme, tag => activeTheme.has(tag) ? activeTheme.delete(tag) : activeTheme.add(tag));
+  buildChips('sportChips', allSportTags, activeSport, tag => activeSport.has(tag) ? activeSport.delete(tag) : activeSport.add(tag));
+}
+
+init();
+</script>
+</body>
+</html>
